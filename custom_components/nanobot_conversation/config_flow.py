@@ -149,7 +149,6 @@ class NanobotOptionsFlow(OptionsFlow):
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         multiline=True,
-                        type=selector.TextSelectorType.TEMPLATE,
                     ),
                 ),
                 vol.Optional(
