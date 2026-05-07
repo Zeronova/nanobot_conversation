@@ -1,0 +1,8 @@
+{
+  "name": "Nanobot Conversation Agent",
+  "render_readme": true,
+  "homeassistant": "2026.4.0",
+  "country": "DE",
+  "domains": ["conversation"],
+  "iot_class": "local_polling"
+}
