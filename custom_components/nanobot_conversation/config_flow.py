@@ -105,15 +105,11 @@ class NanobotConversationConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(config_entry: ConfigEntry) -> "NanobotOptionsFlow":
         """Create the options flow."""
-        return NanobotOptionsFlow(config_entry)
+        return NanobotOptionsFlow()
 
 
 class NanobotOptionsFlow(OptionsFlow):
     """Handle options flow for Nanobot."""
-
-    def __init__(self, config_entry: ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -129,7 +125,6 @@ class NanobotOptionsFlow(OptionsFlow):
                 vol.Optional(
                     CONF_MODEL,
                     default=options.get(CONF_MODEL, DEFAULT_MODEL),
-                    description={"suggested_value": options.get(CONF_MODEL, DEFAULT_MODEL)},
                 ): str,
                 vol.Optional(
                     CONF_LLM_HASS_API,
@@ -144,7 +139,6 @@ class NanobotOptionsFlow(OptionsFlow):
                         ],
                         custom_value=True,
                         multiple=True,
-                        mode=selector.SelectSelectorMode.DROPDOWN,
                     ),
                 ),
                 vol.Optional(
