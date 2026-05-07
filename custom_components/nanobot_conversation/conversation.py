@@ -15,7 +15,7 @@ from openai.types.chat import (
 
 from homeassistant.components import conversation
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_LLM_HASS_API, CONF_PROMPT, MATCH_ALL
+from homeassistant.const import CONF_PROMPT, MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import device_registry as dr, llm
@@ -160,7 +160,6 @@ class NanobotConversationEntity(conversation.ConversationEntity):
         try:
             await chat_log.async_provide_llm_data(
                 llm_context=user_input.as_llm_context(DOMAIN),
-                user_llm_hass_api=options.get(CONF_LLM_HASS_API),
                 user_llm_prompt=options.get(CONF_PROMPT),
                 user_extra_system_prompt=user_input.extra_system_prompt,
             )

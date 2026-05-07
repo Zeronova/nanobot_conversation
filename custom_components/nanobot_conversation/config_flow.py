@@ -5,9 +5,9 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
-from homeassistant.const import CONF_API_KEY, CONF_LLM_HASS_API, CONF_PROMPT
+from homeassistant.const import CONF_API_KEY, CONF_PROMPT
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import llm, selector
+from homeassistant.helpers import selector
 from homeassistant.helpers.httpx_client import get_async_client
 
 from .const import (
@@ -17,6 +17,7 @@ from .const import (
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_API_URL,
+    DEFAULT_INSTRUCTIONS_PROMPT,
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL,
     DEFAULT_TEMPERATURE,
@@ -120,36 +121,42 @@ class NanobotOptionsFlow(OptionsFlow):
 
         options = self.config_entry.options or RECOMMENDED_CONVERSATION_OPTIONS
 
-        schema = vol.Schema(
-            {
+        schema_entries: dict = {}
+
+        # Dynamisch verfügbare Modelle von der API laden
+        models = await self._fetch_available_models()
+        if models:
+            schema_entries[
                 vol.Optional(
                     CONF_MODEL,
                     default=options.get(CONF_MODEL, DEFAULT_MODEL),
-                ): str,
-                vol.Optional(
-                    CONF_LLM_HASS_API,
-                    default=options.get(CONF_LLM_HASS_API, [llm.LLM_API_ASSIST]),
-                ): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=[
-                            selector.SelectOptionDict(
-                                value=llm.LLM_API_ASSIST,
-                                label="Home Assistant area",
-                            ),
-                        ],
-                        custom_value=True,
-                        multiple=True,
-                    ),
+                )
+            ] = selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=[
+                        selector.SelectOptionDict(value=m, label=m)
+                        for m in models
+                    ],
+                    mode="dropdown",
                 ),
+            )
+        else:
+            schema_entries[
+                vol.Optional(
+                    CONF_MODEL,
+                    default=options.get(CONF_MODEL, DEFAULT_MODEL),
+                )
+            ] = str
+
+        schema_entries.update(
+            {
                 vol.Optional(
                     CONF_PROMPT,
                     default=options.get(
-                        CONF_PROMPT, llm.DEFAULT_INSTRUCTIONS_PROMPT
+                        CONF_PROMPT, DEFAULT_INSTRUCTIONS_PROMPT
                     ),
                 ): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        multiline=True,
-                    ),
+                    selector.TextSelectorConfig(multiline=True),
                 ),
                 vol.Optional(
                     CONF_MAX_TOKENS,
@@ -187,4 +194,25 @@ class NanobotOptionsFlow(OptionsFlow):
             }
         )
 
+        schema = vol.Schema(schema_entries)
         return self.async_show_form(step_id="init", data_schema=schema)
+
+    async def _fetch_available_models(self) -> list[str]:
+        """Fetch available models from the nanobot API."""
+        import openai
+
+        api_url = self.config_entry.data.get(CONF_API_URL, DEFAULT_API_URL)
+        api_key = self.config_entry.data.get(CONF_API_KEY, "")
+        try:
+            client = openai.AsyncOpenAI(
+                base_url=f"{api_url.rstrip('/')}/v1",
+                api_key=api_key or "nanobot",
+                http_client=get_async_client(self.hass),
+            )
+            models = []
+            async for model in client.with_options(timeout=5.0).models.list():
+                models.append(model.id)
+            return sorted(models)
+        except Exception:
+            LOGGER.exception("Failed to fetch models from API")
+            return []
