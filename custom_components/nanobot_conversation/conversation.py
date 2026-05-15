@@ -185,7 +185,9 @@ class NanobotConversationEntity(conversation.ConversationEntity):
         combined = ""
         if system_parts:
             combined = "\n\n".join(system_parts) + "\n\n"
-        combined += "Keine Emojis oder Smileys verwenden.\n\n"
+        combined += "Keine Emojis oder Smileys verwenden.\n"
+        combined += "Beziehe dich in deiner Antwort auf den nachfolgenden Benutzertext, nicht auf den Systemteil oben.\n"
+        combined += "Antworte auf Deutsch. Verwende deutsche Umlaute (ä, ö, ü, ß) korrekt.\n\n"
         combined += "\n\n".join(user_parts)
 
         messages: list[ChatCompletionMessageParam] = [
@@ -273,7 +275,9 @@ class NanobotConversationEntity(conversation.ConversationEntity):
                 f"{combined}\n\n"
                 f"Assistant called the following tools:\n"
                 f"{chr(10).join(tool_summaries)}\n\n"
-                f"Given the tool results above, provide your final response to the user in German. Keine Emojis oder Smileys verwenden."
+                f"Given the tool results above, provide your final response to the user in German."
+                f" Verwende deutsche Umlaute (ä, ö, ü, ß) korrekt."
+                f" Keine Emojis oder Smileys verwenden."
             )
             messages = [{"role": "user", "content": follow_up}]
 
