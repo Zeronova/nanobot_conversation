@@ -20,13 +20,3 @@ Home Assistant Conversation Agent, der über eine OpenAI-kompatible API mit dem 
 1. **Integration hinzufügen:** Einstellungen → Geräte & Dienste → Integration hinzufügen → "Nanobot Conversation"
 2. **API-URL** eintragen (Standard: `http://localhost:8900`)
 3. **Assistent einrichten:** Einstellungen → Sprachassistenten → Assist → Konversationsagent → "Nanobot Conversation" auswählen
-
-| Option | Standard | Beschreibung |
-|--------|----------|-------------|
-| API URL | `http://localhost:8900` | Nanobot-Serve-Endpoint |
-| Prompt | HA Default | System-Prompt für den Agent |
-| Model | `""` (Server-Standard) | OpenAI-Modell-Override |
-| Max Tokens | 4096 | Maximale Antwortlänge |
-| Temperature | 0.3 | Kreativität (0.0–2.0) |
-| Top P | 0.9 | Nucleus Sampling |
-| Conversation ID | leer | Session-Tracking (automatisch) |
