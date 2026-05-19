@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator, Callable
 import json
+from time import monotonic
 from typing import Any, Literal
 
 import openai
@@ -166,7 +167,8 @@ class NanobotConversationEntity(conversation.ConversationEntity):
             return err.as_conversation_result()
 
         # --- Step 2: Prepare the OpenAI client and session ---
-        client = self.entry.runtime_data
+        data = self.entry.runtime_data
+        client = data.client
         options = self.entry.options
         conversation_id = user_input.conversation_id or user_input.agent_id
 
@@ -204,6 +206,7 @@ class NanobotConversationEntity(conversation.ConversationEntity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             # Make the API call
             api_kwargs: dict[str, Any] = {
+                "model": data.model,
                 "messages": messages,
                 "extra_body": {
                     "session_id": f"ha_{conversation_id}_{self.entry.entry_id}",
@@ -218,12 +221,23 @@ class NanobotConversationEntity(conversation.ConversationEntity):
             if tools:
                 api_kwargs["tools"] = tools
             try:
+                t0 = monotonic()
                 result = await client.chat.completions.create(**api_kwargs)
+                elapsed = monotonic() - t0
             except openai.OpenAIError as err:
                 LOGGER.error("API error: %s", err)
                 raise HomeAssistantError(
                     f"Error talking to nanobot: {err}"
                 ) from err
+
+            # Track latency and token usage
+            data.last_latency = round(elapsed * 1000, 1)
+            if result.usage:
+                data.daily_tokens += result.usage.total_tokens
+            data.last_interaction = result.created
+            # Update sensor entities
+            for sensor in data._sensor_entities:
+                sensor.async_write_ha_state()
 
             if not result.choices:
                 LOGGER.error("API returned empty choices")

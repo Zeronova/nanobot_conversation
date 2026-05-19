@@ -5,6 +5,8 @@ Connects Home Assistant to the nanobot OpenAI-compatible API
 full tool/function-calling support.
 """
 
+from dataclasses import dataclass, field
+
 from openai import AsyncOpenAI, OpenAIError
 
 from homeassistant.config_entries import ConfigEntry
@@ -15,9 +17,24 @@ from homeassistant.helpers.httpx_client import get_async_client
 
 from .const import CONF_API_URL, DEFAULT_API_URL, DOMAIN, LOGGER
 
-PLATFORMS = [Platform.CONVERSATION]
+PLATFORMS = [Platform.CONVERSATION, Platform.SENSOR]
 
-type NanobotConfigEntry = ConfigEntry[AsyncOpenAI]
+
+@dataclass
+class NanobotData:
+    """Runtime data for the Nanobot integration."""
+
+    client: AsyncOpenAI
+    model: str
+    api_url: str
+    last_latency: float = 0.0
+    daily_tokens: int = 0
+    last_interaction: str | None = None
+    status: str = "unknown"
+    _sensor_entities: list = field(default_factory=list)
+
+
+type NanobotConfigEntry = ConfigEntry[NanobotData]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: NanobotConfigEntry) -> bool:
@@ -31,8 +48,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanobotConfigEntry) -> b
         http_client=get_async_client(hass),
     )
 
+    model = "nanobot"
     try:
-        async for _ in client.with_options(timeout=10.0).models.list():
+        async for m in client.with_options(timeout=10.0).models.list():
+            model = m.id
             break
     except OpenAIError as err:
         LOGGER.warning("Could not connect to nanobot API at %s: %s", api_url, err)
@@ -40,7 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanobotConfigEntry) -> b
             f"Cannot reach nanobot API at {api_url}: {err}"
         ) from err
 
-    entry.runtime_data = client
+    entry.runtime_data = NanobotData(client=client, model=model, api_url=api_url)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
