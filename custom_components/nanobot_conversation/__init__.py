@@ -26,9 +26,13 @@ class NanobotData:
 
     client: AsyncOpenAI
     model: str
+    available_models: list[str] | None = None
     api_url: str
     last_latency: float = 0.0
     daily_tokens: int = 0
+    monthly_tokens: int = 0
+    monthly_tokens_month: str = ""
+    total_requests: int = 0
     last_interaction: str | None = None
     status: str = "unknown"
     _sensor_entities: list = field(default_factory=list)
@@ -49,17 +53,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: NanobotConfigEntry) -> b
     )
 
     model = "nanobot"
+    available_models = None
     try:
+        models_list = []
         async for m in client.with_options(timeout=10.0).models.list():
-            model = m.id
-            break
+            models_list.append(m.id)
+            if model == "nanobot":
+                model = m.id
+        if models_list:
+            available_models = models_list
     except OpenAIError as err:
         LOGGER.warning("Could not connect to nanobot API at %s: %s", api_url, err)
         raise ConfigEntryNotReady(
             f"Cannot reach nanobot API at {api_url}: {err}"
         ) from err
 
-    entry.runtime_data = NanobotData(client=client, model=model, api_url=api_url)
+    entry.runtime_data = NanobotData(
+        client=client,
+        model=model,
+        available_models=available_models,
+        api_url=api_url,
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

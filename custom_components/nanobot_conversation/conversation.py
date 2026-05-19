@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncGenerator, Callable
 import json
+from datetime import datetime, timezone
 from time import monotonic
 from typing import Any, Literal
 
@@ -15,7 +16,6 @@ from openai.types.chat import (
 )
 
 from homeassistant.components import conversation
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PROMPT, MATCH_ALL
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -232,9 +232,18 @@ class NanobotConversationEntity(conversation.ConversationEntity):
 
             # Track latency and token usage
             data.last_latency = round(elapsed * 1000, 1)
+            data.total_requests += 1
+            now_month = datetime.now(timezone.utc).strftime("%Y-%m")
             if result.usage:
                 data.daily_tokens += result.usage.total_tokens
-            data.last_interaction = result.created
+                if data.monthly_tokens_month != now_month:
+                    data.monthly_tokens = result.usage.total_tokens
+                    data.monthly_tokens_month = now_month
+                else:
+                    data.monthly_tokens += result.usage.total_tokens
+            data.last_interaction = datetime.fromtimestamp(
+                result.created, tz=timezone.utc
+            ).isoformat()
             # Update sensor entities
             for sensor in data._sensor_entities:
                 sensor.async_write_ha_state()
