@@ -26,8 +26,8 @@ class NanobotData:
 
     client: AsyncOpenAI
     model: str
-    available_models: list[str] | None = None
     api_url: str
+    available_models: list[str] | None = None
     last_latency: float = 0.0
     daily_tokens: int = 0
     monthly_tokens: int = 0
