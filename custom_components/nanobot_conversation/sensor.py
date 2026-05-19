@@ -3,7 +3,7 @@
 Provides sensors that expose status and usage data from the nanobot serve API.
 """
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 import aiohttp
@@ -283,7 +283,7 @@ class NanobotLastInteractionSensor(SensorEntity):
         )
 
     @property
-    def native_value(self) -> str | None:
+    def native_value(self) -> datetime.datetime | None:
         """Return the last interaction timestamp."""
         return self._entry.runtime_data.last_interaction
 

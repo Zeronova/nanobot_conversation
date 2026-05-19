@@ -6,6 +6,7 @@ full tool/function-calling support.
 """
 
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from openai import AsyncOpenAI, OpenAIError
 
@@ -33,7 +34,7 @@ class NanobotData:
     monthly_tokens: int = 0
     monthly_tokens_month: str = ""
     total_requests: int = 0
-    last_interaction: str | None = None
+    last_interaction: datetime | None = None
     status: str = "unknown"
     _sensor_entities: list = field(default_factory=list)
 

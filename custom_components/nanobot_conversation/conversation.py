@@ -243,7 +243,7 @@ class NanobotConversationEntity(conversation.ConversationEntity):
                     data.monthly_tokens += result.usage.total_tokens
             data.last_interaction = datetime.fromtimestamp(
                 result.created, tz=timezone.utc
-            ).isoformat()
+            )
             # Update sensor entities
             for sensor in data._sensor_entities:
                 sensor.async_write_ha_state()
