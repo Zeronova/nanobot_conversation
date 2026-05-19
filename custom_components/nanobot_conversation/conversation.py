@@ -26,7 +26,6 @@ from homeassistant.helpers.json import json_dumps
 from . import NanobotConfigEntry
 from .const import (
     CONF_MAX_TOKENS,
-    CONF_MODEL,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DOMAIN,
@@ -169,7 +168,6 @@ class NanobotConversationEntity(conversation.ConversationEntity):
         # --- Step 2: Prepare the OpenAI client and session ---
         client = self.entry.runtime_data
         options = self.entry.options
-        model = options.get(CONF_MODEL) or None
         conversation_id = user_input.conversation_id or user_input.agent_id
 
         # --- Step 3: Build single user message ---
@@ -206,7 +204,6 @@ class NanobotConversationEntity(conversation.ConversationEntity):
         for _iteration in range(MAX_TOOL_ITERATIONS):
             # Make the API call
             api_kwargs: dict[str, Any] = {
-                "model": model or None,
                 "messages": messages,
                 "extra_body": {
                     "session_id": f"ha_{conversation_id}_{self.entry.entry_id}",

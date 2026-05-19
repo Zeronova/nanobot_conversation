@@ -13,13 +13,11 @@ from homeassistant.helpers.httpx_client import get_async_client
 from .const import (
     CONF_API_URL,
     CONF_MAX_TOKENS,
-    CONF_MODEL,
     CONF_TEMPERATURE,
     CONF_TOP_P,
     DEFAULT_API_URL,
     DEFAULT_INSTRUCTIONS_PROMPT,
     DEFAULT_MAX_TOKENS,
-    DEFAULT_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_TOP_P,
     DOMAIN,
@@ -119,98 +117,49 @@ class NanobotOptionsFlow(OptionsFlow):
 
         options = self.config_entry.options or RECOMMENDED_CONVERSATION_OPTIONS
 
-        schema_entries: dict = {}
-
-        # Dynamisch verfügbare Modelle von der API laden
-        models = await self._fetch_available_models()
-        if models:
-            schema_entries[
-                vol.Optional(
-                    CONF_MODEL,
-                    default=options.get(CONF_MODEL, DEFAULT_MODEL),
-                )
-            ] = selector.SelectSelector(
-                selector.SelectSelectorConfig(
-                    options=[
-                        selector.SelectOptionDict(value=m, label=m)
-                        for m in models
-                    ],
-                    mode="dropdown",
+        schema_entries: dict = {
+            vol.Optional(
+                CONF_PROMPT,
+                default=options.get(
+                    CONF_PROMPT, DEFAULT_INSTRUCTIONS_PROMPT
                 ),
-            )
-        else:
-            schema_entries[
-                vol.Optional(
-                    CONF_MODEL,
-                    default=options.get(CONF_MODEL, DEFAULT_MODEL),
-                )
-            ] = str
-
-        schema_entries.update(
-            {
-                vol.Optional(
-                    CONF_PROMPT,
-                    default=options.get(
-                        CONF_PROMPT, DEFAULT_INSTRUCTIONS_PROMPT
-                    ),
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(multiline=True),
+            ): selector.TextSelector(
+                selector.TextSelectorConfig(multiline=True),
+            ),
+            vol.Optional(
+                CONF_MAX_TOKENS,
+                default=options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1,
+                    max=MAX_TOKENS_UPPER_BOUND,
+                    mode="box",
+                    step=1,
                 ),
-                vol.Optional(
-                    CONF_MAX_TOKENS,
-                    default=options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=1,
-                        max=MAX_TOKENS_UPPER_BOUND,
-                        mode="box",
-                        step=1,
-                    ),
+            ),
+            vol.Optional(
+                CONF_TEMPERATURE,
+                default=options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=2,
+                    step=0.05,
+                    mode="slider",
                 ),
-                vol.Optional(
-                    CONF_TEMPERATURE,
-                    default=options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=2,
-                        step=0.05,
-                        mode="slider",
-                    ),
+            ),
+            vol.Optional(
+                CONF_TOP_P,
+                default=options.get(CONF_TOP_P, DEFAULT_TOP_P),
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0,
+                    max=1,
+                    step=0.05,
+                    mode="slider",
                 ),
-                vol.Optional(
-                    CONF_TOP_P,
-                    default=options.get(CONF_TOP_P, DEFAULT_TOP_P),
-                ): selector.NumberSelector(
-                    selector.NumberSelectorConfig(
-                        min=0,
-                        max=1,
-                        step=0.05,
-                        mode="slider",
-                    ),
-                ),
-            }
-        )
+            ),
+        }
 
         schema = vol.Schema(schema_entries)
         return self.async_show_form(step_id="init", data_schema=schema)
-
-    async def _fetch_available_models(self) -> list[str]:
-        """Fetch available models from the nanobot API."""
-        import openai
-
-        api_url = self.config_entry.data.get(CONF_API_URL, DEFAULT_API_URL)
-        api_key = self.config_entry.data.get(CONF_API_KEY, "")
-        try:
-            client = openai.AsyncOpenAI(
-                base_url=f"{api_url.rstrip('/')}/v1",
-                api_key=api_key or "nanobot",
-                http_client=get_async_client(self.hass),
-            )
-            models = []
-            async for model in client.with_options(timeout=5.0).models.list():
-                models.append(model.id)
-            return sorted(models)
-        except Exception:
-            LOGGER.exception("Failed to fetch models from API")
-            return []
